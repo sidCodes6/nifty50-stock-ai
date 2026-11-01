@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Streamlit secrets (Do NOT commit sensitive credentials)
+.streamlit/secrets.toml
+
+# Virtual Environment
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data caches and temporary files
+*.tmp
+*.log
+
+# Local profile worktree and temporary inspection files
+github-profile/
+tmp/
+*.zip
