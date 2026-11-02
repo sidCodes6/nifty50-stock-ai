@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>Stock AI · Account</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand"><div class="brand-mark">S</div><div><strong>Stock AI</strong><span>Market insight, made personal</span></div></header>
+    <section class="card">
+      <div class="eyebrow"><i></i> YOUR INVESTING WORKSPACE</div>
+      <h1 id="title">Welcome back</h1>
+      <p class="intro" id="intro">Sign in to continue to your dashboard.</p>
+      <div class="tabs" role="tablist"><button class="tab active" id="loginTab" type="button">Sign in</button><button class="tab" id="registerTab" type="button">Create account</button></div>
+      <form id="loginForm" class="form">
+        <label>Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
+        <button class="primary" type="submit">Sign in <span>→</span></button>
+      </form>
+      <form id="registerForm" class="form hidden">
+        <label>Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required></label>
+        <label>Password<input name="password" type="password" autocomplete="new-password" placeholder="At least 10 characters" minlength="10" required></label>
+        <button class="primary" type="submit">Create account <span>→</span></button>
+        <p class="fine">We’ll email you a one-time verification code.</p>
+      </form>
+      <form id="verifyForm" class="form hidden">
+        <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+        <label>Verification code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code" required></label>
+        <button class="primary" type="submit">Verify email <span>→</span></button>
+        <button class="text-button" id="backToRegister" type="button">Back to registration</button>
+      </form>
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <section id="signedIn" class="signed-in hidden"><div class="success-icon">✓</div><h2>You’re signed in</h2><p id="signedEmail"></p><button class="secondary" id="logout" type="button">Sign out</button></section>
+      <footer><span>Secure access</span><span class="lock">▣</span><span>Your account is protected</span></footer>
+    </section>
+    <p class="bottom-note">Stock AI predictions are for informational purposes.</p>
+  </main>
+  <script src="{{ url_for('static', filename='auth.js') }}" defer></script>
+</body>
+</html>
