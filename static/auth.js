@@ -32,8 +32,12 @@
   registerForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     try {
-      const result = await firebase.auth().createUserWithEmailAndPassword(registerForm.elements.email.value, registerForm.elements.password.value);
-      await handoff(result.user);
+      const email = registerForm.elements.email.value;
+      await firebase.auth().createUserWithEmailAndPassword(email, registerForm.elements.password.value);
+      await firebase.auth().signOut();
+      mode('login');
+      loginForm.elements.email.value = email;
+      showNotice('Account created. Sign in to open your stock dashboard.');
     } catch (error) { showNotice(error.message || 'Account creation failed.', 'error'); }
   });
 })();
