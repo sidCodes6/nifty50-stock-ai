@@ -41,11 +41,7 @@
     try {
       const result = await post('/api/login', body);
       sessionStorage.setItem('stock_ai_token', result.token);
-      signedIn.classList.remove('hidden');
-      loginForm.classList.add('hidden'); registerForm.classList.add('hidden');
-      $('loginTab').classList.add('hidden'); $('registerTab').classList.add('hidden');
-      $('title').textContent = 'You’re all set'; $('intro').textContent = 'Your Stock AI session is active.';
-      $('signedEmail').textContent = result.user.email; hideNotice();
+      window.location.assign(`${result.dashboard_url}/?ticket=${encodeURIComponent(result.dashboard_ticket)}`);
     } catch (error) { showNotice(error.message, 'error'); }
   });
   $('logout').addEventListener('click', () => {

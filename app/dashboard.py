@@ -218,6 +218,22 @@ st.markdown("""
 # ---------------------------------------------------------
 # Demo Investor Login Gate
 # ---------------------------------------------------------
+if "logged_in" not in st.session_state and st.query_params.get("ticket"):
+    dashboard_ticket = st.query_params.get("ticket")
+    st.query_params.clear()
+    try:
+        handoff_response = requests.post(
+            os.getenv("AUTH_BACKEND_URL", "http://127.0.0.1:5000") + "/api/session-ticket/consume",
+            json={"ticket": dashboard_ticket}, timeout=5,
+        )
+        handoff_response.raise_for_status()
+        handoff_user = handoff_response.json()["user"]
+        st.session_state.logged_in = True
+        st.session_state.user_name = handoff_user.get("email", "Investor").split("@")[0]
+        st.session_state.user_email = handoff_user["email"]
+    except (requests.RequestException, KeyError, ValueError):
+        st.error("Your sign-in link expired. Please sign in again.")
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 

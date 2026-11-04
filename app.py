@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 import secrets
+import threading
 
 import jwt
 import mysql.connector
@@ -18,6 +19,8 @@ app = Flask(__name__)
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = "HS256"
 TOKEN_HOURS = int(os.getenv("JWT_EXPIRY_HOURS", "24"))
+_dashboard_tickets = {}
+_ticket_lock = threading.Lock()
 
 def db():
     keys = ("DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME")
@@ -56,6 +59,25 @@ def record_login(cursor, user_id):
     agent = request.headers.get("User-Agent", "")[:1000]
     cursor.execute("INSERT INTO login_history (user_id, login_at, ip_address, user_agent) VALUES (%s, CURRENT_TIMESTAMP, %s, %s)",
                    (user_id, ip, agent))
+
+def create_dashboard_ticket(user):
+    ticket = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=2)
+    with _ticket_lock:
+        _dashboard_tickets[ticket] = {"user": user, "expires": expires}
+    return ticket
+
+@app.post("/api/session-ticket/consume")
+def consume_dashboard_ticket():
+    data = request.get_json(silent=True) or {}
+    ticket = data.get("ticket")
+    if not isinstance(ticket, str):
+        return jsonify(error="Invalid ticket"), 400
+    with _ticket_lock:
+        entry = _dashboard_tickets.pop(ticket, None)
+    if not entry or datetime.now(timezone.utc) >= entry["expires"]:
+        return jsonify(error="Ticket expired or already used"), 401
+    return jsonify(user=entry["user"]), 200
 
 @app.get("/")
 def home():
@@ -128,7 +150,11 @@ def login():
         if not user or not check_password_hash(user["password"], password):
             return jsonify(error="Invalid email or password"), 401
         record_login(cur, user["id"]); conn.commit()
-        return jsonify(token=token_for(user["id"], user["email"]), user={"id": user["id"], "email": user["email"]}), 200
+        public_user = {"id": user["id"], "email": user["email"]}
+        ticket = create_dashboard_ticket(public_user)
+        return jsonify(token=token_for(user["id"], user["email"]), user=public_user,
+                       dashboard_url=os.getenv("DASHBOARD_URL", "http://localhost:8501"),
+                       dashboard_ticket=ticket), 200
     except (Error, RuntimeError):
         app.logger.exception("Login failed")
         if conn and conn.is_connected(): conn.rollback()
