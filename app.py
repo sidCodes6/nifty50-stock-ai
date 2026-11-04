@@ -92,7 +92,7 @@ def consume_dashboard_ticket():
 
 @app.get("/")
 def home():
-    return render_template("auth.html")
+    return render_template("login.html")
 
 @app.post("/api/register")
 def register():
