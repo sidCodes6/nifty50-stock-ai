@@ -1,13 +1,10 @@
-"""Email verification and login tracking API (raw MySQL SQL)."""
+"""Email/password account and login tracking API (raw MySQL SQL)."""
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 from functools import wraps
 import hashlib
 import os
 import re
 import secrets
-import smtplib
-import ssl
 
 import jwt
 import mysql.connector
@@ -29,19 +26,6 @@ def db():
         raise RuntimeError("Missing environment settings: " + ", ".join(missing))
     return mysql.connector.connect(host=os.environ["DB_HOST"], port=int(os.environ["DB_PORT"]),
         user=os.environ["DB_USER"], password=os.environ["DB_PASSWORD"], database=os.environ["DB_NAME"])
-
-def send_email(to_address, subject, body):
-    host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    port = int(os.getenv("SMTP_PORT", "465"))
-    sender, password = os.getenv("GMAIL_ADDRESS"), os.getenv("GMAIL_APP_PASSWORD")
-    if not sender or not password:
-        raise RuntimeError("Set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in .env")
-    msg = EmailMessage()
-    msg["From"], msg["To"], msg["Subject"] = sender, to_address, subject
-    msg.set_content(body)
-    with smtplib.SMTP_SSL(host, port, context=ssl.create_default_context(), timeout=20) as smtp:
-        smtp.login(sender, password)
-        smtp.send_message(msg)
 
 def token_for(user_id, email):
     if not JWT_SECRET:
@@ -87,21 +71,18 @@ def register():
     if not isinstance(password, str) or len(password) < 10 or len(password) > 1024:
         return jsonify(error="Password must be at least 10 characters"), 400
     email = email.strip().lower()
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    token_hash = hashlib.sha256(code.encode()).hexdigest()
     conn = cur = None
     try:
         conn = db(); cur = conn.cursor()
-        cur.execute("INSERT INTO users (email, password, is_verified, verification_token) VALUES (%s, %s, FALSE, %s)",
-                    (email, generate_password_hash(password), token_hash))
+        cur.execute("INSERT INTO users (email, password, is_verified, verification_token) VALUES (%s, %s, TRUE, NULL)",
+                    (email, generate_password_hash(password)))
         conn.commit()
-        send_email(email, "Verify your Stock AI account", f"Your verification code is {code}. It expires in 10 minutes.")
-        return jsonify(message="Verification code sent to your email"), 201
+        return jsonify(message="Account created. You can now sign in."), 201
     except mysql.connector.IntegrityError:
         if conn and conn.is_connected(): conn.rollback()
         return jsonify(error="An account with this email already exists"), 409
-    except (Error, RuntimeError, OSError, smtplib.SMTPException):
-        app.logger.exception("Registration/email delivery failed")
+    except (Error, RuntimeError):
+        app.logger.exception("Registration failed")
         if conn and conn.is_connected(): conn.rollback()
         return jsonify(error="Could not register or send verification email"), 500
     finally:
@@ -146,8 +127,6 @@ def login():
         user = cur.fetchone()
         if not user or not check_password_hash(user["password"], password):
             return jsonify(error="Invalid email or password"), 401
-        if not user["is_verified"]:
-            return jsonify(error="Verify your email before logging in"), 403
         record_login(cur, user["id"]); conn.commit()
         return jsonify(token=token_for(user["id"], user["email"]), user={"id": user["id"], "email": user["email"]}), 200
     except (Error, RuntimeError):
