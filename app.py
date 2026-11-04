@@ -9,6 +9,8 @@ import threading
 
 import jwt
 import mysql.connector
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials
 from dotenv import load_dotenv
 from flask import Flask, g, jsonify, render_template, request
 from mysql.connector import Error
@@ -66,6 +68,15 @@ def create_dashboard_ticket(user):
     with _ticket_lock:
         _dashboard_tickets[ticket] = {"user": user, "expires": expires}
     return ticket
+
+def firebase_app():
+    if firebase_admin._apps:
+        return firebase_admin.get_app()
+    service_account_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
+    if not service_account_path:
+        raise RuntimeError("FIREBASE_SERVICE_ACCOUNT_PATH is not configured")
+    return firebase_admin.initialize_app(credentials.Certificate(service_account_path),
+                                         {"projectId": "ai-stock-prediction-948b4"})
 
 @app.post("/api/session-ticket/consume")
 def consume_dashboard_ticket():
@@ -136,32 +147,25 @@ def verify_email():
         if cur: cur.close()
         if conn and conn.is_connected(): conn.close()
 
-@app.post("/api/login")
+@app.post("/api/firebase-login")
 def login():
     data = request.get_json(silent=True) or {}
-    email, password = data.get("email", ""), data.get("password", "")
-    if not isinstance(email, str) or not isinstance(password, str):
-        return jsonify(error="Email and password required"), 400
-    conn = cur = None
+    id_token = data.get("idToken")
+    if not isinstance(id_token, str) or not id_token:
+        return jsonify(error="Firebase ID token required"), 400
     try:
-        conn = db(); cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id, email, password, is_verified FROM users WHERE email=%s", (email.strip().lower(),))
-        user = cur.fetchone()
-        if not user or not check_password_hash(user["password"], password):
-            return jsonify(error="Invalid email or password"), 401
-        record_login(cur, user["id"]); conn.commit()
-        public_user = {"id": user["id"], "email": user["email"]}
+        claims = firebase_auth.verify_id_token(id_token, app=firebase_app(), check_revoked=True)
+        if not claims.get("email"):
+            return jsonify(error="Firebase account has no email address"), 403
+        public_user = {"uid": claims["uid"], "email": claims["email"],
+                       "name": claims.get("name") or claims["email"].split("@")[0]}
         ticket = create_dashboard_ticket(public_user)
-        return jsonify(token=token_for(user["id"], user["email"]), user=public_user,
+        return jsonify(user=public_user,
                        dashboard_url=os.getenv("DASHBOARD_URL", "http://localhost:8501"),
                        dashboard_ticket=ticket), 200
-    except (Error, RuntimeError):
-        app.logger.exception("Login failed")
-        if conn and conn.is_connected(): conn.rollback()
+    except (firebase_admin.exceptions.FirebaseError, RuntimeError, ValueError):
+        app.logger.exception("Firebase token verification failed")
         return jsonify(error="Could not log in"), 500
-    finally:
-        if cur: cur.close()
-        if conn and conn.is_connected(): conn.close()
 
 @app.get("/api/me/login-history")
 @token_required

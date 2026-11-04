@@ -238,44 +238,9 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    _, login_col, _ = st.columns([1, 2, 1])
-    with login_col:
-        st.markdown("""
-        <div style="text-align: center; margin-top: 35px; margin-bottom: 25px;">
-            <div style="display: inline-block; background: linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(147,51,234,0.2) 100%);
-                        border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 10px 18px; margin-bottom: 12px;">
-                <span style="font-size: 24px;">📈</span> <span style="font-weight: 800; font-size: 18px; letter-spacing: 1px; color: #60a5fa;">STOCK-AI INTELLIGENCE</span>
-            </div>
-            <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 6px; color: #f8fafc;">
-                Demo Investor Login
-            </h2>
-            <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">
-                Multivariate Log-Return AI Forecasting &bull; Real-Time Streaming &bull; Executive Risk Intelligence
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        with st.form("demo_investor_login_form"):
-            full_name = st.text_input("Full Name:", value="Siddharth Rao", placeholder="Enter your full name")
-            email = st.text_input("Email Address:", value="siddharth@gmail.com", placeholder="Enter your email address")
-            submit_login = st.form_submit_button("🚀 Access Dashboard", use_container_width=True, type="primary")
-
-            if submit_login:
-                if not full_name.strip() or not email.strip() or "@" not in email:
-                    st.error("Please enter a valid Full Name and Email Address.")
-                else:
-                    st.session_state.logged_in = True
-                    st.session_state.user_name = full_name.strip()
-                    st.session_state.user_email = email.strip()
-                    st.toast(f"Welcome, {full_name.strip()}!", icon="👋")
-                    st.rerun()
-
-        st.markdown("""
-        <div style="margin-top: 16px; padding: 14px 18px; background: rgba(30, 41, 59, 0.4);
-                    border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); font-size: 12.5px; color: #94a3b8; text-align: center;">
-            🔒 <strong>Demo Investor Access:</strong> Instant login with zero cloud billing or OAuth configuration required.
-        </div>
-        """, unsafe_allow_html=True)
+    login_url = os.getenv("LOGIN_URL", "http://localhost:5000/")
+    st.markdown(f'<meta http-equiv="refresh" content="0;url={login_url}">', unsafe_allow_html=True)
+    st.info("Redirecting to secure sign-in…")
     st.stop()
 
 user_name = st.session_state.get("user_name", "Investor")
