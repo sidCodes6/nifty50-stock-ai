@@ -1,120 +1,86 @@
-# Stock-AI: Professional NSE Stock Price Prediction & Live Alert Dashboard
+# Nifty 50 AI Forecasting Dashboard
 
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.15%2B-orange.svg)](https://www.tensorflow.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Plotly](https://img.shields.io/badge/Plotly-5.18%2B-3F4F75.svg)](https://plotly.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Interactive%20App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-LSTM-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+[![Scikit--learn](https://img.shields.io/badge/Scikit--learn-Preprocessing-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 
-An enterprise-grade, production-ready Deep Learning forecasting suite, authentication gateway, and executive portfolio advisory dashboard for Indian National Stock Exchange (NSE) equities and indices (NIFTY 50, Reliance, TCS, HDFC Bank). 
+An interactive data science portfolio project for exploring Nifty 50 market data and next-session price forecasts. The Streamlit dashboard combines historical price visualization, technical features, and an LSTM model in one place.
 
-Engineered with a decoupled 3-layer stacked LSTM architecture, strict data leakage elimination, calendar-aware business trading day projections, Google/Microsoft OAuth authentication, and an intelligent **"Safe to Hold" vs. "Sell Now"** email advisory system.
+## Live Demo
 
----
+### [Open the live Streamlit app](https://nifty50-stock-ai-ugyw3gkoffpaxbcyazosku.streamlit.app/)
 
-## 🌟 Key Upgrades & Features
+## Dashboard Preview
 
-### 1. 🔐 Enterprise Authentication Gateway (`src/auth.py`)
-* **Google & Microsoft OAuth (OIDC):** Native Streamlit authentication via `Authlib>=1.3.2` connecting to Google Cloud OAuth 2.0 and Microsoft Entra ID (Azure AD).
-* **Smart Local / Demo Fallback:** Immediate access via quick sign-in with your name, registered email address (Gmail / Outlook), and provider choice. Stores session state securely without requiring external cloud setup.
-* **User Profile Header & Logout:** Displays active user badge, email address, provider indicator, and a one-click session logout button in the sidebar.
+![Nifty 50 AI forecasting dashboard preview](docs/images/dashboard-preview.png)
 
-### 2. 🛡️ Smart Stock Advisory Engine ("SAFE TO HOLD" vs. "SELL NOW") (`src/advisory.py`)
-* **Live Portfolio Risk Monitoring:** Links your logged-in email and tracks your entry price, shares held, Stop-Loss threshold (%), Take-Profit target (%), and AI Bearish Alert threshold (%).
-* **Multi-Factor Decision Engine:**
-  - **🟢 STATUS: SAFE TO HOLD (OR ACCUMULATE):** Live market price is above Stop-Loss, LSTM multi-step forecast trajectory is stable/bullish, and 14-day RSI is balanced (< 75).
-  - **🔴 STATUS: ACTION REQUIRED — SELL / BOOK PROFITS / CUT LOSS:** Triggered when Stop-Loss is breached, OR the LSTM model predicts an impending bearish reversal beyond the user threshold, OR Take-Profit target is hit with RSI overbought exhaustion.
-* **Automated & On-Demand HTML Emailing (`smtplib`):** Color-coded executive reports dispatched directly to the user's email via Gmail SMTP, with an auto-send trigger whenever a SELL condition is detected.
+## Key Features
 
-### 3. 🧠 Machine Learning & Data Leakage Prevention (`src/models/lstm.py`)
-* **Leakage-Free Preprocessing:** Data is split 80% Train / 20% Test prior to scaling. `MinMaxScaler` is fitted strictly on the training partition. The last 60 days of training data are prepended to the test set for seamless lookback continuity without data gaps.
-* **Resilient MultiIndex Handling:** Robust flattening of `yfinance` MultiIndex headers so `df['Close']` always resolves to a clean 1D Series.
-* **Zero Dropped Timestamps:** Indexing uses `range(time_step, len(dataset))` so the most recent market close is accurately retained.
-* **Calendar Business Days:** Multi-step projections use `pd.bdate_range()`, ensuring non-trading weekend sessions (Saturdays & Sundays) are skipped.
+- **Demo authentication gate:** Enter a username and password to access the dashboard. This is a portfolio demo gate only; it does not authenticate or authorize users.
+- **Interactive visualizations:** Explore forecast and historical data through interactive Plotly charts and dashboard controls.
+- **Market data retrieval:** Fetches current and historical Nifty 50 index data with `yfinance`, including intraday data where available.
+- **Technical features:** Uses log returns, 14-period RSI, a 20-day simple moving average ratio, and 10-day volatility as model inputs.
+- **Forecast and model metrics:** View predicted price trends, directional signals, and backtest metrics in the dashboard.
+- **Portfolio scenarios:** Adjust holding and alert inputs to explore portfolio risk scenarios.
 
----
+## Tech Stack
 
-## 📂 Project Structure
+| Technology | Role |
+| --- | --- |
+| Python | Application and modeling code |
+| Streamlit | Interactive dashboard and demo access gate |
+| TensorFlow / Keras | LSTM sequence model |
+| Scikit-learn | Feature and target scaling, evaluation metrics |
+| yfinance | Historical and live market data retrieval |
+| Pandas / NumPy | Data preparation and numerical computation |
+| Plotly | Interactive charts |
 
-```
-stock-ai/
-├── .streamlit/
-│   └── secrets.toml.example # OAuth & SMTP configuration template
-├── data/
-│   ├── raw/                 # Downloaded raw market CSV snapshots
-│   └── processed/           # Processed datasets and backtest holdout evaluations
-├── models/                  # Serialized models (.keras) and fitted scalers (.pkl)
-│   ├── lstm_model.keras     # Default trained LSTM network (^NSEI)
-│   ├── scaler.pkl           # Fitted MinMaxScaler
-│   └── *_metrics.pkl        # Precomputed performance evaluations
-├── src/
-│   ├── __init__.py
-│   ├── auth.py              # Google & Microsoft OAuth with instant demo fallback
-│   ├── advisory.py          # Portfolio decision engine (Safe vs Sell) & HTML emailer
-│   └── models/
-│       ├── __init__.py
-│       └── lstm.py          # Refactored LSTM backend training & evaluation pipeline
-├── app/
-│   └── dashboard.py         # Executive Streamlit frontend & Alert subsystem
-├── .gitignore               # Ignores sensitive secrets.toml and build files
-├── requirements.txt         # Core dependencies
-└── README.md                # Comprehensive documentation
-```
+## Machine Learning Architecture
 
----
+The forecasting pipeline downloads Indian market history for the Nifty 50 index (`^NSEI`) with `yfinance`, engineers a multivariate feature sequence, and predicts the next session’s log return. The LSTM receives a 60-session lookback with four features: log return, RSI, the close-to-20-day-SMA ratio, and 10-day volatility. Its recurrent layers contain 64 and 32 units with dropout regularization.
 
-## ⚡ Quickstart & Installation
+The predicted return is converted back to a price estimate. Scalers are fit on the training partition and applied to held-out observations, helping prevent preprocessing leakage. Market forecasts are estimates from historical patterns and can differ substantially from actual prices.
 
-### 1. Environment Setup
-```bash
-git clone https://github.com/your-username/stock-ai.git
-cd stock-ai
-pip install -r requirements.txt
-```
+## Run Locally
 
-### 2. Configure Credentials (Optional)
-Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml`:
-```toml
-[auth.google]
-client_id = "YOUR_GOOGLE_CLIENT_ID"
-client_secret = "YOUR_GOOGLE_CLIENT_SECRET"
+1. Clone the repository:
 
-[auth.microsoft]
-client_id = "YOUR_MICROSOFT_CLIENT_ID"
-client_secret = "YOUR_MICROSOFT_CLIENT_SECRET"
+   ```bash
+   git clone https://github.com/sidCodes6/nifty50-stock-ai.git
+   cd nifty50-stock-ai
+   ```
 
-[email]
-sender_email = "your-email@gmail.com"
-app_password = "your-16-char-gmail-app-password"
-```
-*(Note: If cloud OAuth credentials are not entered, the application automatically enables the smart Quick Sign-In fallback).*
+2. Create and activate a virtual environment.
 
-### 3. Backend Model Training
-Train the default NIFTY 50 (`^NSEI`) model and generate evaluation metrics:
-```bash
-python src/models/lstm.py
-```
+   **Windows PowerShell:**
 
-### 4. Launch the Executive Dashboard
-```bash
-streamlit run app/dashboard.py
-```
-Open your browser at **`http://localhost:8501`**.
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
 
----
+   **macOS / Linux:**
 
-## 📊 Dashboard Tabs & Capabilities
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
 
-1. **Login Landing Page:** Modern glassmorphic gateway with Google & Microsoft identity integration.
-2. **Executive KPI Row:** Live market price (₹ and % delta), Next-Day AI forecast, N-Day target price, and Bullish/Bearish signal badge.
-3. **Live Advisory Banner:** Dynamic color-coded banner displaying **🟢 SAFE TO HOLD** vs. **🔴 TIME TO SELL**, net unrealized P&L, diagnostic reasons, and immediate email dispatch buttons.
-4. **Tab 1 (Future Forecast):** Historical price curve with 30-day dotted LSTM projection, dynamic volatility envelope, and interactive range slider.
-5. **Tab 2 (Model Backtest):** 20% holdout test evaluation with live RMSE, MAE, R², 1% tolerance accuracy, and residual error bars.
-6. **Tab 3 (Forecast Table):** Day-by-day projected return breakdown with one-click CSV export.
-7. **Tab 4 (Portfolio Health & Advisory):** Complete balance sheet of user holdings, capital invested, liquidation value, and decision rules.
-8. **Tab 5 (Architecture & Specs):** Full engineering overview of neural layers and data pipelines.
+3. Install dependencies:
 
----
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
 
-## 🛡️ License
-Distributed under the MIT License.
+4. Start the dashboard:
+
+   ```bash
+   python -m streamlit run app/dashboard.py
+   ```
+
+5. Open the local URL printed by Streamlit, usually `http://localhost:8501`.
+
+## Disclaimer
+
+Disclaimer: This application is purely for educational purposes and portfolio demonstration. The AI stock predictions are not financial advice and should not be used for actual market trading.
