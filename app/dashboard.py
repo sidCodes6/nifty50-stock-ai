@@ -13,10 +13,8 @@ from typing import Tuple, Dict, Any, Optional
 import joblib
 import numpy as np
 import pandas as pd
-import requests
 import streamlit as st
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import yfinance as yf
 
 # Ensure root is in sys.path
@@ -218,29 +216,28 @@ st.markdown("""
 # ---------------------------------------------------------
 # Demo Investor Login Gate
 # ---------------------------------------------------------
-if "logged_in" not in st.session_state and st.query_params.get("ticket"):
-    dashboard_ticket = st.query_params.get("ticket")
-    st.query_params.clear()
-    try:
-        handoff_response = requests.post(
-            os.getenv("AUTH_BACKEND_URL", "http://127.0.0.1:5000") + "/api/session-ticket/consume",
-            json={"ticket": dashboard_ticket}, timeout=5,
-        )
-        handoff_response.raise_for_status()
-        handoff_user = handoff_response.json()["user"]
-        st.session_state.logged_in = True
-        st.session_state.user_name = handoff_user.get("email", "Investor").split("@")[0]
-        st.session_state.user_email = handoff_user["email"]
-    except (requests.RequestException, KeyError, ValueError):
-        st.error("Your sign-in link expired. Please sign in again.")
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    login_url = os.getenv("LOGIN_URL", "http://localhost:5000/")
-    st.markdown(f'<meta http-equiv="refresh" content="0;url={login_url}">', unsafe_allow_html=True)
-    st.info("Redirecting to secure sign-in…")
+    _, login_col, _ = st.columns([1, 2, 1])
+    with login_col:
+        st.markdown("""
+        <div style="text-align:center;margin:35px 0 25px;">
+          <div style="display:inline-block;background:linear-gradient(135deg,rgba(37,99,235,.2),rgba(147,51,234,.2));border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 18px;margin-bottom:12px;">
+            <span style="font-size:24px">📈</span> <strong style="font-size:18px;letter-spacing:1px;color:#60a5fa">STOCK-AI INTELLIGENCE</strong>
+          </div>
+          <h2 style="font-size:28px;font-weight:800;margin-bottom:6px;color:#f8fafc">Welcome to Stock-AI</h2>
+          <p style="color:#94a3b8;font-size:14px">Sign in to explore AI-powered stock predictions.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        username = st.text_input("Username", placeholder="Enter any username")
+        password = st.text_input("Password", type="password", placeholder="Enter any password")
+        if st.button("Enter Dashboard", use_container_width=True, type="primary"):
+            st.session_state.logged_in = True
+            st.session_state.user_name = username.strip() or "Investor"
+            st.session_state.user_email = username.strip() or "demo-investor"
+            st.rerun()
     st.stop()
 
 user_name = st.session_state.get("user_name", "Investor")
