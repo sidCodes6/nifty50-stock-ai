@@ -16,14 +16,15 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import yfinance as yf
-from src.firebase_auth import refresh_session, sign_in, sign_up, verify_session
 
-# Ensure root is in sys.path
+# Streamlit Cloud may start this file with `app/` as the import root. Add the
+# repository root before importing project modules such as `src.firebase_auth`.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from src.firebase_auth import refresh_session, sign_in, sign_up, verify_session
 from tensorflow.keras.models import load_model
 from src.models.lstm import (
     download_market_data,
