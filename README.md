@@ -17,7 +17,7 @@ An interactive data science portfolio project for exploring Nifty 50 market data
 
 ## Key Features
 
-- **Demo authentication gate:** Enter a username and password to access the dashboard. This is a portfolio demo gate only; it does not authenticate or authorize users.
+- **Firebase Authentication:** Users can create accounts with email and password, sign in, and sign out. Firebase ID tokens are refreshed and checked before accessing the dashboard.
 - **Interactive visualizations:** Explore forecast and historical data through interactive Plotly charts and dashboard controls.
 - **Market data retrieval:** Fetches current and historical Nifty 50 index data with `yfinance`, including intraday data where available.
 - **Technical features:** Uses log returns, 14-period RSI, a 20-day simple moving average ratio, and 10-day volatility as model inputs.
@@ -29,7 +29,8 @@ An interactive data science portfolio project for exploring Nifty 50 market data
 | Technology | Role |
 | --- | --- |
 | Python | Application and modeling code |
-| Streamlit | Interactive dashboard and demo access gate |
+| Streamlit | Interactive dashboard and Firebase sign-in UI |
+| Firebase Authentication | Email/password account management |
 | TensorFlow / Keras | LSTM sequence model |
 | Scikit-learn | Feature and target scaling, evaluation metrics |
 | yfinance | Historical and live market data retrieval |
@@ -43,6 +44,14 @@ The forecasting pipeline downloads Indian market history for the Nifty 50 index 
 The predicted return is converted back to a price estimate. Scalers are fit on the training partition and applied to held-out observations, helping prevent preprocessing leakage. Market forecasts are estimates from historical patterns and can differ substantially from actual prices.
 
 ## Run Locally
+
+Configure Firebase Authentication before launching the dashboard:
+
+1. In Firebase Console, enable **Authentication → Sign-in method → Email/Password**.
+2. Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and set `firebase.api_key` to the Web API key shown in Firebase project settings.
+3. Install requirements with `pip install -r requirements.txt` (this includes the `requests` client used to call Firebase Authentication).
+
+The API key in Firebase web configuration identifies the project; Firebase Authentication still checks the email and password. Keep service-account private keys out of the browser and repository.
 
 1. Clone the repository:
 

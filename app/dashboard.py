@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import yfinance as yf
+from src.firebase_auth import refresh_session, sign_in, sign_up, verify_session
 
 # Ensure root is in sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -214,12 +215,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Demo Investor Login Gate
+# Firebase Authentication Gate
 # ---------------------------------------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+if "firebase_user" not in st.session_state:
+    st.session_state.firebase_user = None
 
-if not st.session_state.logged_in:
+if st.session_state.firebase_user:
+    try:
+        # Firebase ID tokens expire after about an hour. Refresh, then validate
+        # the token with Firebase before allowing access to the dashboard.
+        refreshed = refresh_session(st.session_state.firebase_refresh_token)
+        st.session_state.firebase_id_token = refreshed["id_token"]
+        st.session_state.firebase_refresh_token = refreshed["refresh_token"]
+        st.session_state.firebase_user = verify_session(refreshed["id_token"])
+    except Exception:
+        for key in ("firebase_user", "firebase_id_token", "firebase_refresh_token"):
+            st.session_state.pop(key, None)
+
+if not st.session_state.firebase_user:
     _, login_col, _ = st.columns([1, 2, 1])
     with login_col:
         st.markdown("""
@@ -228,20 +241,66 @@ if not st.session_state.logged_in:
             <span style="font-size:24px">📈</span> <strong style="font-size:18px;letter-spacing:1px;color:#60a5fa">STOCK-AI INTELLIGENCE</strong>
           </div>
           <h2 style="font-size:28px;font-weight:800;margin-bottom:6px;color:#f8fafc">Welcome to Stock-AI</h2>
-          <p style="color:#94a3b8;font-size:14px">Sign in to explore AI-powered stock predictions.</p>
+          <p style="color:#94a3b8;font-size:14px">Sign in or create an account to explore AI-powered stock predictions.</p>
         </div>
         """, unsafe_allow_html=True)
-        username = st.text_input("Username", placeholder="Enter any username")
-        password = st.text_input("Password", type="password", placeholder="Enter any password")
-        if st.button("Enter Dashboard", use_container_width=True, type="primary"):
-            st.session_state.logged_in = True
-            st.session_state.user_name = username.strip() or "Investor"
-            st.session_state.user_email = username.strip() or "demo-investor"
-            st.rerun()
+        try:
+            firebase_configured = bool(
+                os.getenv("FIREBASE_API_KEY")
+                or st.secrets.get("firebase", {}).get("api_key", "")
+            )
+        except Exception:
+            firebase_configured = bool(os.getenv("FIREBASE_API_KEY"))
+        if not firebase_configured:
+            st.error("Firebase is not configured. Add your Firebase Web API key to Streamlit secrets to enable authentication.")
+        sign_in_tab, sign_up_tab = st.tabs(["Sign in", "Create account"])
+        with sign_in_tab:
+            with st.form("firebase_sign_in"):
+                login_email = st.text_input("Email", placeholder="you@example.com")
+                login_password = st.text_input("Password", type="password")
+                submitted = st.form_submit_button("Sign in", use_container_width=True, type="primary", disabled=not firebase_configured)
+            if submitted:
+                try:
+                    account = sign_in(login_email, login_password)
+                    st.session_state.firebase_user = {"uid": account["uid"], "email": account["email"], "name": account["name"]}
+                    st.session_state.firebase_id_token = account["id_token"]
+                    st.session_state.firebase_refresh_token = account["refresh_token"]
+                    st.rerun()
+                except Exception as exc:
+                    st.error(str(exc))
+        with sign_up_tab:
+            with st.form("firebase_sign_up"):
+                signup_name = st.text_input("Full name", placeholder="Your name")
+                signup_email = st.text_input("Email", placeholder="you@example.com")
+                signup_password = st.text_input("Password", type="password", help="Use at least 6 characters.")
+                signup_confirm = st.text_input("Confirm password", type="password")
+                submitted = st.form_submit_button("Create account", use_container_width=True, type="primary", disabled=not firebase_configured)
+            if submitted:
+                if not signup_name.strip() or not signup_email.strip() or "@" not in signup_email:
+                    st.error("Enter your name and a valid email address.")
+                elif len(signup_password) < 6:
+                    st.error("Password must be at least 6 characters.")
+                elif signup_password != signup_confirm:
+                    st.error("The passwords do not match.")
+                else:
+                    try:
+                        account = sign_up(signup_email, signup_password, signup_name)
+                        st.session_state.firebase_user = {"uid": account["uid"], "email": account["email"], "name": account["name"]}
+                        st.session_state.firebase_id_token = account["id_token"]
+                        st.session_state.firebase_refresh_token = account["refresh_token"]
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(str(exc))
     st.stop()
 
-user_name = st.session_state.get("user_name", "Investor")
-user_email = st.session_state.get("user_email", "investor@example.com")
+user_name = st.session_state.firebase_user["name"]
+user_email = st.session_state.firebase_user["email"]
+with st.sidebar:
+    st.caption(f"Signed in as {user_name} · {user_email}")
+    if st.button("Sign out", use_container_width=True):
+        for key in ("firebase_user", "firebase_id_token", "firebase_refresh_token"):
+            st.session_state.pop(key, None)
+        st.rerun()
 
 # ---------------------------------------------------------
 # Supported Assets
